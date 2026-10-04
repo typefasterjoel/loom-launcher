@@ -1,7 +1,8 @@
 [package]
-name = "modloader"
+name = "loom-launcher"
 version = "0.1.0"
-description = "A Custom Modpack Manager for Minecraft"
+license = "GPL-3.0-only"
+description = "Custom Modpack Manager for Minecraft"
 authors = ["typefasterjoel"]
 edition = "2021"
 
