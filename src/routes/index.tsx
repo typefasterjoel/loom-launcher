@@ -11,7 +11,6 @@ export const Route = createFileRoute("/")({
 
 function RouteComponent() {
   const { data: instances = [], isLoading } = useInstances();
-  console.log(instances);
   return (
     <section>
       <div data-app-slot="instances" className="flex flex-col gap-4">

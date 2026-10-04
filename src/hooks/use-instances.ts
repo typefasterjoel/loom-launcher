@@ -39,3 +39,16 @@ export function useCreateInstance() {
     },
   });
 }
+
+export function useDeleteInstance() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (instanceId: string) => {
+      return await invoke("delete_instance", { instanceId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: instanceKeys.all });
+    },
+  });
+}

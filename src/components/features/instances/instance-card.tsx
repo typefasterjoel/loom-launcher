@@ -2,15 +2,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDeleteInstance } from "@/hooks/use-instances";
 import { cn } from "@/lib/utils";
 import { Instance, ModLoader } from "@/types/instance";
 import {
   AnvilIcon,
   BlocksIcon,
   BoxIcon,
+  CopyIcon,
   EllipsisVertical,
+  EraserIcon,
   JoystickIcon,
   PawPrintIcon,
   PlayIcon,
@@ -58,6 +64,13 @@ const modLoaders: Record<ModLoader, ModLoaderSettings> = {
 };
 
 export default function InstanceCard({ instance, onPlay }: InterfaceCardProps) {
+  const { mutate: deleteInstance } = useDeleteInstance();
+
+  const handleDelete = (id: string) => {
+    console.log(id);
+    deleteInstance(id);
+  };
+
   return (
     <Card>
       <CardContent className="flex items-center gap-3">
@@ -99,6 +112,19 @@ export default function InstanceCard({ instance, onPlay }: InterfaceCardProps) {
                 </Button>
               }
             />
+            <DropdownMenuContent>
+              <DropdownMenuItem>
+                <CopyIcon />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => handleDelete(instance.id)}
+              >
+                <EraserIcon /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </CardContent>

@@ -1,6 +1,6 @@
 use crate::utils::fs::sanitize_folder_name;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::Manager;
 use uuid::Uuid;
 
@@ -82,4 +82,46 @@ pub fn get_instances(app_handle: tauri::AppHandle) -> Result<Vec<Instance>, Stri
     }
 
     Ok(instances)
+}
+
+fn find_instance_folder(
+    instances_dir: &Path,
+    instance_id: &str,
+) -> Result<Option<PathBuf>, String> {
+    let entries = fs::read_dir(instances_dir).map_err(|error| error.to_string())?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+
+        let config_file = path.join("instance.json");
+
+        let Ok(content) = fs::read_to_string(config_file) else {
+            continue;
+        };
+
+        let Ok(instance) = serde_json::from_str::<Instance>(&content) else {
+            continue;
+        };
+
+        if instance.id == instance_id {
+            return Ok(Some(path));
+        }
+    }
+
+    Ok(None)
+}
+
+#[tauri::command]
+pub fn delete_instance(instance_id: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    let instances_dir = get_instances_dir(&app_handle)?;
+    println!("Delete is invoked.");
+
+    match find_instance_folder(&instances_dir, &instance_id)? {
+        Some(instance_folder) => {
+            println!("Found the folder: {}", instance_folder.display());
+            fs::remove_dir_all(&instance_folder).map_err(|error| error.to_string())?;
+            Ok(())
+        }
+        None => Err(format!("No instance found with id {instance_id}")),
+    }
 }

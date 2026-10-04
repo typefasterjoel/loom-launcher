@@ -4,7 +4,7 @@ mod meta;
 mod utils;
 
 use config::{get_theme, set_theme};
-use instances::{create_instance, get_instances};
+use instances::{create_instance, delete_instance, get_instances};
 use meta::{get_latest_loader_version, get_minecraft_versions};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -18,6 +18,7 @@ pub fn run() {
             get_instances,
             get_minecraft_versions,
             get_latest_loader_version,
+            delete_instance,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
