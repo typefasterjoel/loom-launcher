@@ -61,27 +61,20 @@ pub fn create_instance(
 #[tauri::command]
 pub fn get_instances(app_handle: tauri::AppHandle) -> Result<Vec<Instance>, String> {
     let instances_dir = get_instances_dir(&app_handle)?;
-    let mut instances = Vec::new();
 
     let entries = fs::read_dir(instances_dir).map_err(|error| error.to_string())?;
 
-    for entry in entries.flatten() {
-        let path = entry.path();
-
-        if path.is_dir() {
-            let config_file = path.join("instance.json");
-
-            if config_file.exists() {
-                if let Ok(content) = fs::read_to_string(config_file) {
-                    if let Ok(instance) = serde_json::from_str::<Instance>(&content) {
-                        instances.push(instance)
-                    }
-                }
-            }
-        }
-    }
+    let instances = entries
+        .flatten()
+        .filter_map(|instance| read_instance(&instance.path()))
+        .collect();
 
     Ok(instances)
+}
+
+fn read_instance(folder: &Path) -> Option<Instance> {
+    let content = fs::read_to_string(folder.join("instance.json")).ok()?;
+    serde_json::from_str(&content).ok()
 }
 
 fn find_instance_folder(
@@ -93,17 +86,7 @@ fn find_instance_folder(
     for entry in entries.flatten() {
         let path = entry.path();
 
-        let config_file = path.join("instance.json");
-
-        let Ok(content) = fs::read_to_string(config_file) else {
-            continue;
-        };
-
-        let Ok(instance) = serde_json::from_str::<Instance>(&content) else {
-            continue;
-        };
-
-        if instance.id == instance_id {
+        if read_instance(&path).is_some_and(|instance| instance.id == instance_id) {
             return Ok(Some(path));
         }
     }
