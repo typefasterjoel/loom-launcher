@@ -49,6 +49,7 @@ const MOD_LOADERS: { label: string; value: ModLoader }[] = [
 ];
 
 export default function CreateInstanceDialog() {
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [mcVersion, setMcVersion] = useState<string | null>("");
   const [modLoader, setModLoader] = useState<ModLoader>("vanilla");
@@ -87,13 +88,18 @@ export default function CreateInstanceDialog() {
       });
 
       setName("");
+      setOpen(false);
     } catch (err) {
       console.error("Error creating instance:", err);
     }
   };
 
   return (
-    <Dialog data-slot="app-create-instance-dialog">
+    <Dialog
+      data-slot="app-create-instance-dialog"
+      open={open}
+      onOpenChange={setOpen}
+    >
       <Tooltip>
         <TooltipTrigger
           render={

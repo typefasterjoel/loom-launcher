@@ -7,11 +7,15 @@ use std::path::PathBuf;
 use std::time::SystemTime;
 use tauri::Manager;
 
-use crate::meta::models::{FabricLoaderEntry, QuiltLoaderEntry};
+use crate::meta::models::{FabricLoaderEntry, ForgePromotions, QuiltLoaderEntry};
 
 const MOJANG_MANIFEST_URL: &str = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 const FABRIC_MANIFEST_URL: &str = "https://meta.fabricmc.net/v2/versions/loader";
 const QUILT_MANIFEST_URL: &str = "https://meta.quiltmc.org/v3/versions/loader";
+const FORGE_PROMOTIONS_URL: &str =
+    "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json";
+const NEOFORGE_MAVEN_METADATA_URL: &str =
+    "https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml";
 const CACHE_TTL_SECIONS: u64 = 60 * 60 * 24;
 
 fn get_cache_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -75,7 +79,7 @@ async fn get_fabric_loader_version(game_version: &str) -> Result<String, String>
     let url = format!("{}/{}", FABRIC_MANIFEST_URL, game_version);
 
     let client = reqwest::Client::builder()
-        .user_agent("CustomLauncher/1.0")
+        .user_agent("LoomLauncher/1.0")
         .build()
         .map_err(|error| error.to_string())?;
 
@@ -101,7 +105,7 @@ async fn get_quilt_loader_version(game_version: &str) -> Result<String, String> 
     let url = format!("{}/{}", QUILT_MANIFEST_URL, game_version);
 
     let client = reqwest::Client::builder()
-        .user_agent("CustomLauncher/1.0")
+        .user_agent("LoomLauncher/1.0")
         .build()
         .map_err(|error| error.to_string())?;
 
@@ -129,6 +133,76 @@ async fn get_quilt_loader_version(game_version: &str) -> Result<String, String> 
     Ok(chosen.to_string())
 }
 
+// Forge
+async fn get_forge_loader_version(game_version: &str) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .user_agent("LoomLauncerh/1.0")
+        .build()
+        .map_err(|error| error.to_string())?;
+
+    let promotions: ForgePromotions = client
+        .get(FORGE_PROMOTIONS_URL)
+        .send()
+        .await
+        .map_err(|error| format!("Failed to reach Forge promos: {error}"))?
+        .json()
+        .await
+        .map_err(|error| format!("Failed to parse Forge promos: {error}"))?;
+
+    let recommended_key = format!("{game_version}-recommended");
+    let latest_key = format!("{game_version}-latest");
+
+    if let Some(ver) = promotions.promos.get(&recommended_key) {
+        Ok(ver.clone())
+    } else if let Some(ver) = promotions.promos.get(&latest_key) {
+        Ok(ver.clone())
+    } else {
+        Err(format!("No Forge build found for Minecraft {game_version}"))
+    }
+}
+
+// Neoforge
+async fn get_neoforge_loader_version(game_version: &str) -> Result<String, String> {
+    let mc_prefix = game_version.strip_prefix("1.").unwrap_or(game_version);
+    let expected_prefix = format!("{mc_prefix}.");
+
+    let client = reqwest::Client::builder()
+        .user_agent("LoomLauncher/1.0")
+        .build()
+        .map_err(|error| error.to_string())?;
+
+    let raw_xml = client
+        .get(NEOFORGE_MAVEN_METADATA_URL)
+        .send()
+        .await
+        .map_err(|error| format!("Failed to reach Neoforge Maven: {error}"))?
+        .text()
+        .await
+        .map_err(|error| format!("Failed to read Neoforge metadata: {error}"))?;
+
+    let mut matching_versions: Vec<String> = Vec::new();
+
+    for line in raw_xml.lines() {
+        let trimmed = line.trim();
+        if let (Some(start), Some(end)) = (trimmed.find("<version>"), trimmed.find("</version>")) {
+            if start < end {
+                let ver = &trimmed[start + "<version>".len()..end];
+                if ver.starts_with(&expected_prefix)
+                    && !ver.contains("-beta")
+                    && !ver.contains("-alpha")
+                {
+                    matching_versions.push(ver.to_string());
+                }
+            }
+        }
+    }
+
+    matching_versions
+        .last()
+        .cloned()
+        .ok_or_else(|| format!("No Neoforge build found for Minecraft {game_version}"))
+}
+
 #[tauri::command]
 pub async fn get_latest_loader_version(
     game_version: String,
@@ -139,8 +213,8 @@ pub async fn get_latest_loader_version(
         "fabric" => get_fabric_loader_version(&game_version).await,
         "quilt" => get_quilt_loader_version(&game_version).await,
         //Placeholders
-        "forge" => Ok("latest".to_string()),
-        "neoforge" => Ok("latest".to_string()),
+        "forge" => get_forge_loader_version(&game_version).await,
+        "neoforge" => get_neoforge_loader_version(&game_version).await,
         _ => Err(format!("Unsupported loader: {}", loader)),
     }
 }

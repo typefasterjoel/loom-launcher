@@ -9,13 +9,16 @@ interface ModloaderQueryContext {
 
 const RootLayout = () => (
   <>
-    <div id="app-container" className="flex h-full items-stretch">
+    <div
+      id="app-container"
+      className="flex h-full items-stretch overflow-hidden"
+    >
       <aside id="app-sidebar">
         <Sidebar />
       </aside>
       <section
         id="app-content"
-        className="bg-accent h-full w-full rounded-tl-lg border-s border-t p-4"
+        className="bg-accent h-full w-full overflow-y-auto rounded-tl-lg border-s border-t p-4"
       >
         <Outlet />
       </section>

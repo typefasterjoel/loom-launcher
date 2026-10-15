@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 // Minecraft Game Info
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -55,4 +56,10 @@ pub struct QuiltLoaderInfo {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QuiltLoaderEntry {
     pub loader: QuiltLoaderInfo,
+}
+
+// Forge
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ForgePromotions {
+    pub promos: HashMap<String, String>,
 }
