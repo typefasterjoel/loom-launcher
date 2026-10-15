@@ -10,6 +10,7 @@ import {
 import { useDeleteInstance } from "@/hooks/use-instances";
 import { cn } from "@/lib/utils";
 import { Instance, ModLoader } from "@/types/instance";
+import { invoke } from "@tauri-apps/api/core";
 import {
   AnvilIcon,
   BlocksIcon,
@@ -17,6 +18,7 @@ import {
   CopyIcon,
   EllipsisVertical,
   EraserIcon,
+  FolderOpenIcon,
   JoystickIcon,
   PawPrintIcon,
   PlayIcon,
@@ -112,7 +114,15 @@ export default function InstanceCard({ instance, onPlay }: InterfaceCardProps) {
                 </Button>
               }
             />
-            <DropdownMenuContent>
+            <DropdownMenuContent className="w-fit">
+              <DropdownMenuItem
+                onClick={() =>
+                  invoke("open_instance_folder", { instanceId: instance.id })
+                }
+              >
+                <FolderOpenIcon />
+                Instance Folder
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <CopyIcon />
                 Duplicate

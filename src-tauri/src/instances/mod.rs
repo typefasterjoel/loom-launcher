@@ -2,6 +2,7 @@ use crate::utils::fs::sanitize_folder_name;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
+use tauri_plugin_opener::OpenerExt;
 use uuid::Uuid;
 
 pub mod models;
@@ -103,6 +104,29 @@ pub fn delete_instance(instance_id: String, app_handle: tauri::AppHandle) -> Res
         Some(instance_folder) => {
             println!("Found the folder: {}", instance_folder.display());
             fs::remove_dir_all(&instance_folder).map_err(|error| error.to_string())?;
+            Ok(())
+        }
+        None => Err(format!("No instance found with id {instance_id}")),
+    }
+}
+
+#[tauri::command]
+pub fn open_instance_folder(
+    instance_id: String,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    let instances_dir = get_instances_dir(&app_handle)?;
+
+    match find_instance_folder(&instances_dir, &instance_id)? {
+        Some(instance_folder) => {
+            let path_str = instance_folder
+                .to_str()
+                .ok_or_else(|| format!("Instance path contains invalid UTF-8 characters"))?;
+
+            app_handle
+                .opener()
+                .open_path(path_str, None::<&str>)
+                .map_err(|error| format!("Failed to Open the folder: {error}"))?;
             Ok(())
         }
         None => Err(format!("No instance found with id {instance_id}")),
